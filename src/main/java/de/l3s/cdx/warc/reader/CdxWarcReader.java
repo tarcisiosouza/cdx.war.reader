@@ -146,7 +146,10 @@ public void map(Object key, Text value, Context context)
 	    	{ 
 	    		return;
 	    	}
-		token.nextToken();
+		type = token.nextToken();
+		if (!type.contains("html"))
+			return;
+		
 	} catch (Exception e) {
 		return;
 	}
@@ -154,6 +157,8 @@ public void map(Object key, Text value, Context context)
 	try 
 	{
 		rescode = Integer.parseInt(token.nextToken());
+		if (rescode!=200)
+			return;
 		int count = 0;
 		while (count <= 3)
 		{
