@@ -1,11 +1,17 @@
 package de.l3s.cdx.warc.reader;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.StringTokenizer;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
@@ -22,6 +28,14 @@ import org.apache.hadoop.mapreduce.lib.input.FileSplit;
 import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
+import org.apache.hadoop.conf.Configured;
+import org.apache.hadoop.fs.LocatedFileStatus;
+import org.apache.hadoop.fs.RemoteIterator;
+import org.apache.hadoop.io.MapWritable;
+import org.apache.hadoop.mapreduce.MRJobConfig;
+import org.apache.hadoop.util.Tool;
+import org.apache.hadoop.util.ToolRunner;
+import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.archive.io.ArchiveReader;
 import org.archive.io.ArchiveRecord;
 import org.archive.io.arc.ARCReaderFactory;
@@ -42,16 +56,64 @@ private String CdxFileName;
 private String type;
 private String WarcFileName;
 public String url;
+private String[] allMatches = new String[1];
+private String str;
+private URL Url;
+
 private static HashMap<String, String> domainsCategories = new HashMap<String, String>();
-private static HashMap<String, Integer> domains = new HashMap<String, Integer>();
+private static HashSet<String> domains = new HashSet<String>();
 
 @Override
 protected void setup(Context context) throws IOException,
 		InterruptedException {
 
+	Path location = new Path("/user/souza/uk_news_complete.txt");
+    FileSystem fileSystem = location.getFileSystem(context.getConfiguration());
+    
+	RemoteIterator<LocatedFileStatus> fileStatusListIterator = fileSystem.listFiles(
+//		            new Path("/Users/tarcisio/Documents/Promotion/german_news.txt"), true);
+			new Path("/user/souza/uk_news_complete.txt"), true);
+//			new Path("/tarcisio/input/german_news.txt"), true);
+    
+	while(fileStatusListIterator.hasNext())
+	{
+    	
+		String line;
+        LocatedFileStatus fileStatus = fileStatusListIterator.next();
+        BufferedReader br=new BufferedReader(new InputStreamReader(fileSystem.open(fileStatus.getPath())));		    
+       
+        while ((line = br.readLine()) != null) 
+        {
+        	
+        	domains.add(line);
+        	
+        }
+	}
 	WarcFilePath = "";
 	
 	}
+
+public String getDomain (String url) throws MalformedURLException
+{
+	Matcher m = Pattern.compile("(http).*").matcher(url);
+	while (m.find()) 
+    {
+		
+		allMatches[0] = m.group(); 
+    	str = allMatches[0];
+    	Url = new URL(str);
+    }
+    
+	String Domain = Url.getHost();
+	if (Domain.contains("www")) {
+		int index = Domain.indexOf(".");
+		Domain = Domain.substring(index + 1, Domain.length());
+	}
+	
+	return Domain;
+	
+}
+
 
 public void map(Object key, Text value, Context context)
 		throws IOException, InterruptedException {
@@ -64,6 +126,7 @@ public void map(Object key, Text value, Context context)
 			|| CdxFileName.contains("_masterindex"))
 		return;
 
+	
 	StringTokenizer token = new StringTokenizer(value.toString());
 	try 
 	{
@@ -77,7 +140,12 @@ public void map(Object key, Text value, Context context)
 	try 
 	{
 		url = token.nextToken();
-
+		String domain = getDomain(url);
+	    
+	    	if (!domains.contains(domain))
+	    	{ 
+	    		return;
+	    	}
 		token.nextToken();
 	} catch (Exception e) {
 		return;
@@ -110,8 +178,8 @@ public void map(Object key, Text value, Context context)
 	type = WarcFileName.substring(0, 2);
 	
 	WarcFilePath = "hdfs://nameservice1/data/ia/w/de/" + type + "/" + WarcFileName;
-	//context.write(outKey, new Text (WarcFilePath+" "+offset));
-	
+	context.write(outKey, new Text (value.toString()));
+/*	
     try {	
     	
     	
@@ -122,7 +190,7 @@ public void map(Object key, Text value, Context context)
 		context.write(outKey, new Text (text));
 		
 	}
-	
+	*/
 }
 
 public String getUrl() {
