@@ -288,7 +288,7 @@ job.setJarByClass(WarcMapper.class);
 // Setup MapReduce
 job.setMapperClass(WarcMapper.class);
 job.setReducerClass(Reducer.class);
-job.setNumReduceTasks(1);
+job.setNumReduceTasks(30);
 
 // Specify key / value
 job.setOutputKeyClass(NullWritable.class);
