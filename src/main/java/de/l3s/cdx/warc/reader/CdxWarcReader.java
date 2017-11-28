@@ -28,14 +28,10 @@ import org.apache.hadoop.mapreduce.lib.input.FileSplit;
 import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
-import org.apache.hadoop.conf.Configured;
+import org.apache.hadoop.mapreduce.lib.output.LazyOutputFormat;
 import org.apache.hadoop.fs.LocatedFileStatus;
 import org.apache.hadoop.fs.RemoteIterator;
-import org.apache.hadoop.io.MapWritable;
-import org.apache.hadoop.mapreduce.MRJobConfig;
-import org.apache.hadoop.util.Tool;
-import org.apache.hadoop.util.ToolRunner;
-import org.apache.hadoop.yarn.conf.YarnConfiguration;
+
 import org.archive.io.ArchiveReader;
 import org.archive.io.ArchiveRecord;
 import org.archive.io.arc.ARCReaderFactory;
@@ -306,7 +302,7 @@ job.setInputFormatClass(TextInputFormat.class);
 // Output
 FileOutputFormat.setOutputPath(job, outputDir);
 job.setOutputFormatClass(TextOutputFormat.class);
-
+LazyOutputFormat.setOutputFormatClass(job, TextOutputFormat.class);
 // Delete output if exists
 FileSystem hdfs = FileSystem.get(conf);
 if (hdfs.exists(outputDir))
